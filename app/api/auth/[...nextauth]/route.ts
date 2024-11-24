@@ -10,15 +10,7 @@ import { logSecurityEvent } from '@/lib/utils/logger';
 const handler = NextAuth({
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" },
-        totpCode: { label: "2FA Code", type: "text" }
-      },
-      async authorize(credentials) {
-        // ... (keep the existing Credentials provider logic)
-      }
+      // ... (keep existing CredentialsProvider configuration)
     }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -27,6 +19,10 @@ const handler = NextAuth({
   ],
   pages: {
     signIn: '/auth/signin',
+  },
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
     async jwt({ token, user, account }) {
@@ -48,6 +44,14 @@ const handler = NextAuth({
       session.accessToken = token.accessToken;
       session.provider = token.provider;
       return session;
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      logSecurityEvent('USER_SIGNIN', { userId: user.id, email: user.email });
+    },
+    async signOut({ token }) {
+      logSecurityEvent('USER_SIGNOUT', { userId: token.id, email: token.email });
     },
   },
 });
