@@ -6,13 +6,16 @@ import Link from 'next/link';
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setIsLoading(true);
 
     if (!email) {
       setMessage('Please enter your email address');
+      setIsLoading(false);
       return;
     }
 
@@ -26,12 +29,14 @@ export default function ForgotPassword() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage('Password reset instructions sent to your email');
+        setMessage('If an account exists for this email, a password reset link has been sent.');
       } else {
         setMessage(data.error || 'An error occurred. Please try again.');
       }
     } catch (error) {
       setMessage('An error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -61,8 +66,9 @@ export default function ForgotPassword() {
             <button
               type="submit"
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={isLoading}
             >
-              Reset Password
+              {isLoading ? 'Processing...' : 'Reset Password'}
             </button>
           </div>
         </form>
