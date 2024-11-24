@@ -8,6 +8,7 @@ import { verifyTOTP } from '@/lib/utils/twoFactorAuth';
 import { users, User } from '@/lib/models/user';
 import { logSecurityEvent } from '@/lib/utils/logger';
 import { generateAndSendEmailCode } from '@/lib/utils/emailAuth';
+import { notifyUserOfSuspiciousActivity } from '@/lib/utils/notifications';
 
 const handler = NextAuth({
   providers: [
@@ -20,7 +21,70 @@ const handler = NextAuth({
         emailCode: { label: "Email Code", type: "text" }
       },
       async authorize(credentials, req) {
-        // ... (keep existing authorization logic)
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Please enter an email and password');
+        }
+
+        const ip = getClientIp(req);
+        const ipRateLimitResult = rateLimit(ip, true);
+        const userRateLimitResult = rateLimit(credentials.email);
+
+        if (!ipRateLimitResult.allowed || !userRateLimitResult.allowed) {
+          const lockoutMinutes = Math.ceil((Math.max(ipRateLimitResult.lockedUntil || 0, userRateLimitResult.lockedUntil || 0) - Date.now()) / 60000);
+          logSecurityEvent('RATE_LIMIT_EXCEEDED', { ip, email: credentials.email });
+          throw new Error(`Too many requests. Please try again in ${lockoutMinutes} minutes.`);
+        }
+
+        const user = users.find(user => user.email === credentials.email);
+
+        if (!user) {
+          logSecurityEvent('LOGIN_ATTEMPT_USER_NOT_FOUND', { email: credentials.email, ip });
+          throw new Error('No user found with this email');
+        }
+
+        const isPasswordValid = await compare(credentials.password, user.password);
+
+        if (!isPasswordValid) {
+          logSecurityEvent('LOGIN_ATTEMPT_INVALID_PASSWORD', { email: credentials.email, ip });
+          await notifyUserOfSuspiciousActivity(user, 'Failed login attempt', { ip });
+          throw new Error('Invalid password');
+        }
+
+        if (user.isTwoFactorEnabled) {
+          if (user.twoFactorSecret) {
+            if (!credentials.totpCode) {
+              logSecurityEvent('LOGIN_ATTEMPT_2FA_REQUIRED', { email: credentials.email, ip });
+              throw new Error('2FA code required');
+            }
+
+            const isTotpValid = verifyTOTP(credentials.totpCode, user.twoFactorSecret);
+
+            if (!isTotpValid) {
+              logSecurityEvent('LOGIN_ATTEMPT_INVALID_2FA', { email: credentials.email, ip });
+              await notifyUserOfSuspiciousActivity(user, 'Invalid 2FA code', { ip });
+              throw new Error('Invalid 2FA code');
+            }
+          } else {
+            if (!credentials.emailCode) {
+              // Generate and send email code
+              const code = await generateAndSendEmailCode(user.email);
+              user.emailAuthCode = code;
+              user.emailAuthCodeExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+              logSecurityEvent('LOGIN_ATTEMPT_EMAIL_2FA_REQUIRED', { email: credentials.email, ip });
+              throw new Error('Email verification code required');
+            }
+
+            if (credentials.emailCode !== user.emailAuthCode || Date.now() > (user.emailAuthCodeExpiry || 0)) {
+              logSecurityEvent('LOGIN_ATTEMPT_INVALID_EMAIL_2FA', { email: credentials.email, ip });
+              await notifyUserOfSuspiciousActivity(user, 'Invalid email verification code', { ip });
+              throw new Error('Invalid or expired email verification code');
+            }
+
+            // Clear the email code after successful verification
+            user.emailAuthCode = null;
+            user.emailAuthCodeExpiry = null;
+          }
+        }
 
         logSecurityEvent('LOGIN_SUCCESS', { email: credentials.email, ip });
         return { id: user.id, name: user.name, email: user.email, role: user.role };
