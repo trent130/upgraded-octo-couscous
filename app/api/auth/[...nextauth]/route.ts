@@ -2,12 +2,8 @@ import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcrypt';
 import { rateLimit } from '@/lib/utils/rateLimiter';
-
-// Simulating a database connection
-const users = [
-  { id: '1', name: 'John Doe', email: 'john@example.com', password: 'b0Bnv6HmKIVDXwUpn3gCRz.VJhwjqHiHQJrNf1VnQlFmqnoADn0.4G' }, // password123
-  { id: '2', name: 'Jane Doe', email: 'jane@example.com', password: 'b0.XxjWGYbAMeqf7ckiP2k4vbi2WfA2EOi' }, // password456
-];
+import { verifyTOTP } from '@/lib/utils/twoFactorAuth';
+import { users } from '@/lib/models/user';
 
 const handler = NextAuth({
   providers: [
@@ -15,7 +11,8 @@ const handler = NextAuth({
       name: 'Credentials',
       credentials: {
         email: { label: "Email", type: "text" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
+        totpCode: { label: "2FA Code", type: "text" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -38,6 +35,18 @@ const handler = NextAuth({
           throw new Error('Invalid password');
         }
 
+        if (user.isTwoFactorEnabled) {
+          if (!credentials.totpCode) {
+            throw new Error('2FA code required');
+          }
+
+          const isTotpValid = verifyTOTP(credentials.totpCode, user.twoFactorSecret);
+
+          if (!isTotpValid) {
+            throw new Error('Invalid 2FA code');
+          }
+        }
+
         return { id: user.id, name: user.name, email: user.email };
       }
     })
@@ -49,12 +58,14 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
+        session.user.email = token.email;
       }
       return session;
     },
