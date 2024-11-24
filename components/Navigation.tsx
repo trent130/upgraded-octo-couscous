@@ -13,6 +13,12 @@ export default function Navigation() {
         <div>
           {session ? (
             <>
+              <Link href="/auth/profile" className="mr-4 hover:text-gray-300">
+                Profile
+              </Link>
+              <Link href="/auth/manage-2fa" className="mr-4 hover:text-gray-300">
+                Manage 2FA
+              </Link>
               <span className="mr-4">Welcome, {session.user?.name || session.user?.email}</span>
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
