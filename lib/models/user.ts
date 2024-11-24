@@ -8,6 +8,10 @@ export interface User {
   twoFactorSecret?: string;
   isTwoFactorEnabled: boolean;
   backupCodes?: string[];
+  securityQuestions?: {
+    question: string;
+    answer: string;
+  }[];
 }
 
 // This is a mock database. In a real application, you would use a proper database.
