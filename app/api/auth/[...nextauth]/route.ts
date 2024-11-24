@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcrypt';
+import { rateLimit } from '@/lib/utils/rateLimiter';
 
 // Simulating a database connection
 const users = [
@@ -19,6 +20,10 @@ const handler = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Please enter an email and password');
+        }
+
+        if (!rateLimit(credentials.email)) {
+          throw new Error('Too many login attempts. Please try again later.');
         }
 
         const user = users.find(user => user.email === credentials.email);
@@ -44,19 +49,16 @@ const handler = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.email = user.email;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
-        session.user.email = token.email;
       }
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
 });
 
 export { handler as GET, handler as POST };
