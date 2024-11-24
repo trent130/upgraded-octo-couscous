@@ -19,8 +19,10 @@ const handler = NextAuth({
           throw new Error('Please enter an email and password');
         }
 
-        if (!rateLimit(credentials.email)) {
-          throw new Error('Too many login attempts. Please try again later.');
+        const rateLimitResult = rateLimit(credentials.email);
+        if (!rateLimitResult.allowed) {
+          const lockoutMinutes = Math.ceil((rateLimitResult.lockedUntil - Date.now()) / 60000);
+          throw new Error(`Too many login attempts. Please try again in ${lockoutMinutes} minutes.`);
         }
 
         const user = users.find(user => user.email === credentials.email);
