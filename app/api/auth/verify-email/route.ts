@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-
-// This is a mock database. In a real application, you would use a proper database.
-let users = [];
+import { users } from '@/lib/models/user';
+import { logSecurityEvent } from '@/lib/utils/logger';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -14,6 +13,7 @@ export async function GET(req: Request) {
   const user = users.find(u => u.verificationToken === token);
 
   if (!user) {
+    logSecurityEvent('EMAIL_VERIFICATION_INVALID_TOKEN', { token });
     return NextResponse.json({ error: 'Invalid verification token' }, { status: 400 });
   }
 
@@ -24,6 +24,8 @@ export async function GET(req: Request) {
   // Update user's verification status
   user.isVerified = true;
   user.verificationToken = null;
+
+  logSecurityEvent('EMAIL_VERIFICATION_SUCCESS', { email: user.email });
 
   return NextResponse.json({ message: 'Email verified successfully' }, { status: 200 });
 }
