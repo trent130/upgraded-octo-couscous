@@ -1,6 +1,6 @@
 const WINDOW_SIZE = 15 * 60 * 1000; // 15 minutes
 const MAX_REQUESTS_PER_IP = 100;
-const MAX_REQUESTS_PER_USER = 50;
+const MAX_REQUESTS_PER_USER = 5;
 const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes
 
 interface RateLimitEntry {
@@ -46,4 +46,9 @@ export function getClientIp(req: Request): string {
     return forwardedFor.split(',')[0].trim();
   }
   return 'unknown';
+}
+
+export function resetRateLimit(key: string, isIp: boolean = false): void {
+  const map = isIp ? ipRateLimitMap : userRateLimitMap;
+  map.delete(key);
 }
