@@ -6,21 +6,23 @@ import { InputBase, IconButton, Paper } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { useRouter } from 'next/navigation';
 
-const SearchBar: React.FC = () => {
+export default function SearchBar() {
   const [searchTerm, setSearchTerm] = useState('');
   const router = useRouter();
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      // In a real application, you would implement the search functionality here
-      // For now, we'll just navigate to a search results page
-      router.push(`/search?q=${encodeURIComponent(searchTerm)}`);
+      router.push(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
     }
   };
 
   return (
-    <Paper component="form" onSubmit={handleSearch} sx={{ p: '2px 4px', display: 'flex', alignItems: 'center', width: 400 }}>
+    <Paper
+      component="form"
+      sx={{ p: '2px 4px', display: 'flex', alignItems: 'center', width: 400 }}
+      onSubmit={handleSearch}
+    >
       <InputBase
         sx={{ ml: 1, flex: 1 }}
         placeholder="Search for products..."
@@ -33,6 +35,4 @@ const SearchBar: React.FC = () => {
       </IconButton>
     </Paper>
   );
-};
-
-export default SearchBar;
+}

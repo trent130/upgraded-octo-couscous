@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import Link from 'next/link';
 import { useSession, signIn, signOut } from 'next-auth/react';
@@ -16,10 +16,13 @@ export default function ClientLayout() {
         <Typography variant="h6" component={Link} href="/" style={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}>
           Student Marketplace
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <SearchBar />
+        <SearchBar />
+        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
           <Button color="inherit" component={Link} href="/products">
             Products
+          </Button>
+          <Button color="inherit" component={Link} href="/textbook-exchange">
+            Textbook Exchange
           </Button>
           <Button color="inherit" component={Link} href="/cart">
             Cart

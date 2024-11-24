@@ -1,75 +1,73 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { Box, TextField, Button, List, ListItem, ListItemText, Paper, Typography } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
+import React, { useState, useEffect } from 'react';
+import { Box, TextField, Button, Typography, Paper } from '@mui/material';
 
-interface Message {
-  id: number;
-  text: string;
-  sender: 'user' | 'bot';
-}
+export default function ChatUI({ productId }) {
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
 
-const ChatUI: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "Welcome to Student Marketplace! How can I help you today?", sender: 'bot' }
-  ]);
-  const [input, setInput] = useState('');
+  useEffect(() => {
+    // In a real app, we would fetch previous messages from a backend
+    const savedMessages = localStorage.getItem(`chat_${productId}`);
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages));
+    }
+  }, [productId]);
 
-  const handleSend = () => {
-    if (input.trim()) {
-      const newMessage: Message = {
-        id: messages.length + 1,
-        text: input.trim(),
-        sender: 'user'
-      };
-      setMessages([...messages, newMessage]);
-      setInput('');
-      
-      // Simulate bot response
+  const handleSendMessage = () => {
+    if (newMessage.trim() !== '') {
+      const updatedMessages = [
+        ...messages,
+        { text: newMessage, sender: 'buyer', timestamp: new Date().toISOString() }
+      ];
+      setMessages(updatedMessages);
+      setNewMessage('');
+      localStorage.setItem(`chat_${productId}`, JSON.stringify(updatedMessages));
+
+      // Simulate seller response
       setTimeout(() => {
-        const botResponse: Message = {
-          id: messages.length + 2,
-          text: "Thank you for your message. A support representative will get back to you soon.",
-          sender: 'bot'
+        const sellerResponse = {
+          text: "Thank you for your message. How can I help you?",
+          sender: 'seller',
+          timestamp: new Date().toISOString()
         };
-        setMessages(prevMessages => [...prevMessages, botResponse]);
+        const updatedMessagesWithResponse = [...updatedMessages, sellerResponse];
+        setMessages(updatedMessagesWithResponse);
+        localStorage.setItem(`chat_${productId}`, JSON.stringify(updatedMessagesWithResponse));
       }, 1000);
     }
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 2, maxWidth: 400, margin: 'auto', mt: 4 }}>
+    <Paper elevation={3} sx={{ p: 2, maxWidth: 400, margin: 'auto' }}>
       <Typography variant="h6" gutterBottom>
-        Chat Support
+        Chat with Seller
       </Typography>
-      <Box sx={{ height: 300, overflowY: 'auto', mb: 2 }}>
-        <List>
-          {messages.map((message) => (
-            <ListItem key={message.id} sx={{ justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start' }}>
-              <Paper elevation={1} sx={{ p: 1, bgcolor: message.sender === 'user' ? 'primary.light' : 'grey.100' }}>
-                <ListItemText primary={message.text} />
-              </Paper>
-            </ListItem>
-          ))}
-        </List>
+      <Box sx={{ height: 300, overflowY: 'auto', mb: 2, p: 1, border: '1px solid #e0e0e0' }}>
+        {messages.map((message, index) => (
+          <Box key={index} sx={{ mb: 1, textAlign: message.sender === 'buyer' ? 'right' : 'left' }}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+              {message.sender === 'buyer' ? 'You' : 'Seller'}:
+            </Typography>
+            <Typography variant="body1">{message.text}</Typography>
+          </Box>
+        ))}
       </Box>
       <Box sx={{ display: 'flex' }}>
         <TextField
           fullWidth
           variant="outlined"
-          placeholder="Type a message..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+          placeholder="Type your message..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
         />
-        <Button variant="contained" endIcon={<SendIcon />} onClick={handleSend} sx={{ ml: 1 }}>
+        <Button variant="contained" onClick={handleSendMessage} sx={{ ml: 1 }}>
           Send
         </Button>
       </Box>
     </Paper>
   );
-};
-
-export default ChatUI;
+}
