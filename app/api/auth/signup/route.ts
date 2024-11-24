@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { hash } from 'bcrypt';
 import crypto from 'crypto';
+import { users } from '@/lib/models/user';
+import { logSecurityEvent } from '@/lib/utils/logger';
 
-// This is a mock database. In a real application, you would use a proper database.
-let users = [];
-
-// Mock function to send verification email
+// This is a mock function. In a real application, you would use a proper email service.
 async function sendVerificationEmail(email: string, token: string) {
-  console.log();
-  // In a real application, you would send an actual email here
+  console.log(`Sending verification email to ${email} with token ${token}`);
+  // Simulate email sending delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
 }
 
 export async function POST(req: Request) {
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     // Create new user
     const newUser = {
-      id: users.length + 1,
+      id: (users.length + 1).toString(),
       name,
       email,
       password: hashedPassword,
@@ -47,9 +47,12 @@ export async function POST(req: Request) {
     // Send verification email
     await sendVerificationEmail(email, verificationToken);
 
+    logSecurityEvent('USER_SIGNUP', { email });
+
     return NextResponse.json({ message: 'User created successfully. Please check your email to verify your account.' }, { status: 201 });
   } catch (error) {
     console.error('Error in signup route:', error);
+    logSecurityEvent('USER_SIGNUP_ERROR', { error: error.message });
     return NextResponse.json({ error: 'An error occurred while processing your request' }, { status: 500 });
   }
 }
