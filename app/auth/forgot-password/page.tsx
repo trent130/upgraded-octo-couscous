@@ -1,21 +1,21 @@
 "use client";
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
-    setIsLoading(true);
+    setError('');
 
     if (!email) {
-      setMessage('Please enter your email address');
-      setIsLoading(false);
+      setError('Please enter your email address');
       return;
     }
 
@@ -31,12 +31,10 @@ export default function ForgotPassword() {
       if (response.ok) {
         setMessage(data.message);
       } else {
-        setMessage(data.error || 'An error occurred. Please try again.');
+        setError(data.error || 'An error occurred');
       }
     } catch (error) {
-      setMessage('An error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
+      setError('An error occurred. Please try again.');
     }
   };
 
@@ -59,24 +57,17 @@ export default function ForgotPassword() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-
-          {message && <p className="text-sm text-center" style={{ color: message.includes('error') ? 'red' : 'green' }}>{message}</p>}
-
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {message && <p className="text-green-500 text-sm">{message}</p>}
           <div>
             <button
               type="submit"
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              disabled={isLoading}
             >
-              {isLoading ? 'Processing...' : 'Reset Password'}
+              Reset Password
             </button>
           </div>
         </form>
-        <div className="text-sm text-center mt-4">
-          <Link href="/auth/signin" className="font-medium text-indigo-600 hover:text-indigo-500">
-            Back to Sign In
-          </Link>
-        </div>
       </div>
     </div>
   );
