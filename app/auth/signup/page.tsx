@@ -93,7 +93,9 @@ export default function SignUp() {
           </div>
           {passwordStrength && (
             <div className="text-sm">
-              <p className={}>
+              <p className={`font-semibold ${
+                passwordStrength.score < 3 ? 'text-red-500' : 'text-green-500'
+              }`}>
                 Password strength: {['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'][passwordStrength.score]}
               </p>
               {passwordStrength.feedback.warning && (
