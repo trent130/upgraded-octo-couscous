@@ -1,29 +1,22 @@
-export function checkPasswordStrength(password: string): { isStrong: boolean; message: string } {
-  const minLength = 8;
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumbers = /\d/.test(password);
-  const hasNonalphas = /\W/.test(password);
+import zxcvbn from 'zxcvbn';
 
-  if (password.length < minLength) {
-    return { isStrong: false, message: 'Password must be at least 8 characters long' };
-  }
+export interface PasswordStrengthResult {
+  score: number;
+  feedback: {
+    warning: string;
+    suggestions: string[];
+  };
+}
 
-  if (!hasUpperCase) {
-    return { isStrong: false, message: 'Password must contain at least one uppercase letter' };
-  }
+export function checkPasswordStrength(password: string): PasswordStrengthResult {
+  const result = zxcvbn(password);
+  return {
+    score: result.score,
+    feedback: result.feedback
+  };
+}
 
-  if (!hasLowerCase) {
-    return { isStrong: false, message: 'Password must contain at least one lowercase letter' };
-  }
-
-  if (!hasNumbers) {
-    return { isStrong: false, message: 'Password must contain at least one number' };
-  }
-
-  if (!hasNonalphas) {
-    return { isStrong: false, message: 'Password must contain at least one special character' };
-  }
-
-  return { isStrong: true, message: 'Password is strong' };
+export function isPasswordStrong(password: string): boolean {
+  const result = checkPasswordStrength(password);
+  return result.score >= 3; // Considering scores 3 and 4 as strong
 }
