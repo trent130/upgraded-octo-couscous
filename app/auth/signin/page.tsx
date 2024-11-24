@@ -9,11 +9,13 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (!email || !password) {
       setError('Please fill in all fields');
@@ -30,7 +32,8 @@ export default function SignIn() {
       if (result?.error) {
         setError('Invalid email or password');
       } else {
-        router.push('/');
+        setSuccess('Sign in successful! Redirecting...');
+        setTimeout(() => router.push('/'), 2000);
       }
     } catch (error) {
       setError('An error occurred. Please try again.');
@@ -74,6 +77,7 @@ export default function SignIn() {
           </div>
 
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+          {success && <p className="text-green-500 text-sm mt-2">{success}</p>}
 
           <div className="flex items-center justify-between">
             <div className="text-sm">
