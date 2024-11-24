@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { hash } from 'bcrypt';
+import crypto from 'crypto';
 
 // This is a mock database. In a real application, you would use a proper database.
 let users = [];
+
+// Mock function to send verification email
+async function sendVerificationEmail(email: string, token: string) {
+  console.log();
+  // In a real application, you would send an actual email here
+}
 
 export async function POST(req: Request) {
   try {
@@ -21,20 +28,26 @@ export async function POST(req: Request) {
     // Hash the password
     const hashedPassword = await hash(password, 10);
 
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(20).toString('hex');
+
     // Create new user
     const newUser = {
       id: users.length + 1,
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      isVerified: false,
+      verificationToken
     };
 
     // Add user to mock database
     users.push(newUser);
 
-    // In a real application, you would save the user to your database here
+    // Send verification email
+    await sendVerificationEmail(email, verificationToken);
 
-    return NextResponse.json({ message: 'User created successfully' }, { status: 201 });
+    return NextResponse.json({ message: 'User created successfully. Please check your email to verify your account.' }, { status: 201 });
   } catch (error) {
     console.error('Error in signup route:', error);
     return NextResponse.json({ error: 'An error occurred while processing your request' }, { status: 500 });
