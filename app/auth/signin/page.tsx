@@ -8,8 +8,10 @@ import Link from 'next/link';
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,10 +29,15 @@ export default function SignIn() {
         redirect: false,
         email,
         password,
+        totpCode,
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        if (result.error === '2FA code required') {
+          setRequiresTwoFactor(true);
+        } else {
+          setError(result.error);
+        }
       } else {
         setSuccess('Sign in successful! Redirecting...');
         setTimeout(() => router.push('/'), 2000);
@@ -75,6 +82,22 @@ export default function SignIn() {
               />
             </div>
           </div>
+
+          {requiresTwoFactor && (
+            <div>
+              <label htmlFor="totpCode" className="sr-only">2FA Code</label>
+              <input
+                id="totpCode"
+                name="totpCode"
+                type="text"
+                required
+                className="appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Enter 2FA Code"
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value)}
+              />
+            </div>
+          )}
 
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
           {success && <p className="text-green-500 text-sm mt-2">{success}</p>}
