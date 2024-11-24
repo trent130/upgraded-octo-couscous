@@ -20,7 +20,7 @@ export default function ForgotPassword() {
     }
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -29,7 +29,7 @@ export default function ForgotPassword() {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage('If an account exists for this email, a password reset link has been sent.');
+        setMessage(data.message);
       } else {
         setMessage(data.error || 'An error occurred. Please try again.');
       }
