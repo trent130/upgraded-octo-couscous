@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { hash } from 'bcrypt';
-import crypto from 'crypto';
 import { users } from '@/lib/models/user';
 import { logSecurityEvent } from '@/lib/utils/logger';
+import { hash } from 'bcrypt';
+import crypto from 'crypto';
 
 // This is a mock function. In a real application, you would use a proper email service.
 async function sendPasswordResetEmail(email: string, token: string) {
@@ -22,7 +22,6 @@ export async function POST(req: Request) {
     const user = users.find(u => u.email === email);
 
     if (!user) {
-      logSecurityEvent('PASSWORD_RESET_REQUEST_USER_NOT_FOUND', { email });
       // Don't reveal that the user doesn't exist
       return NextResponse.json({ message: 'If an account exists for this email, a password reset link has been sent.' });
     }
@@ -36,7 +35,7 @@ export async function POST(req: Request) {
 
     await sendPasswordResetEmail(email, resetToken);
 
-    logSecurityEvent('PASSWORD_RESET_REQUEST', { email });
+    logSecurityEvent('PASSWORD_RESET_REQUESTED', { userId: user.id, email: user.email });
 
     return NextResponse.json({ message: 'If an account exists for this email, a password reset link has been sent.' });
   } catch (error) {
@@ -57,18 +56,17 @@ export async function PUT(req: Request) {
     const user = users.find(u => u.resetToken === token && u.resetTokenExpiry > Date.now());
 
     if (!user) {
-      logSecurityEvent('PASSWORD_RESET_INVALID_TOKEN', { token });
       return NextResponse.json({ error: 'Invalid or expired reset token' }, { status: 400 });
     }
 
     const hashedPassword = await hash(newPassword, 10);
 
-    // In a real application, you would update the user's password in the database
+    // Update user's password
     user.password = hashedPassword;
     user.resetToken = null;
     user.resetTokenExpiry = null;
 
-    logSecurityEvent('PASSWORD_RESET_SUCCESS', { email: user.email });
+    logSecurityEvent('PASSWORD_RESET_SUCCESS', { userId: user.id, email: user.email });
 
     return NextResponse.json({ message: 'Password has been reset successfully' });
   } catch (error) {
