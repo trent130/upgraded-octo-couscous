@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/utils/rateLimiter';
 
 // This is a mock function. In a real application, you would use a proper email service.
 async function sendPasswordResetEmail(email: string, resetToken: string) {
-  console.log();
+  console.log(`Sending password reset email to ${email} with token ${resetToken}`);
   // Simulate email sending delay
   await new Promise(resolve => setTimeout(resolve, 1000));
 }
@@ -13,6 +14,10 @@ export async function POST(req: Request) {
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    }
+
+    if (!rateLimit(email)) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
     // In a real application, you would:
