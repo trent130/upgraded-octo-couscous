@@ -1,6 +1,7 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
+import GitHubProvider from 'next-auth/providers/github';
 import { compare } from 'bcrypt';
 import { rateLimit } from '@/lib/utils/rateLimiter';
 import { verifyTOTP } from '@/lib/utils/twoFactorAuth';
@@ -16,13 +17,13 @@ const handler = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
+    GitHubProvider({
+      clientId: process.env.GITHUB_ID,
+      clientSecret: process.env.GITHUB_SECRET,
+    }),
   ],
   pages: {
     signIn: '/auth/signin',
-  },
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
     async jwt({ token, user, account }) {
@@ -47,8 +48,8 @@ const handler = NextAuth({
     },
   },
   events: {
-    async signIn({ user }) {
-      logSecurityEvent('USER_SIGNIN', { userId: user.id, email: user.email });
+    async signIn({ user, account }) {
+      logSecurityEvent('USER_SIGNIN', { userId: user.id, email: user.email, provider: account?.provider });
     },
     async signOut({ token }) {
       logSecurityEvent('USER_SIGNOUT', { userId: token.id, email: token.email });
