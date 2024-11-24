@@ -1,4 +1,6 @@
 
+"use client";
+
 import React, { useState } from 'react';
 import { Container, Fab } from '@mui/material';
 import ChatIcon from '@mui/icons-material/Chat';
