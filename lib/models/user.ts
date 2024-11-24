@@ -7,6 +7,7 @@ export interface User {
   verificationToken?: string;
   twoFactorSecret?: string;
   isTwoFactorEnabled: boolean;
+  backupCodes?: string[];
 }
 
 // This is a mock database. In a real application, you would use a proper database.
