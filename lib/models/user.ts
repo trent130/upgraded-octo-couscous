@@ -1,3 +1,5 @@
+export type UserRole = 'user' | 'admin' | 'moderator';
+
 export interface User {
   id: string;
   name: string;
@@ -14,6 +16,7 @@ export interface User {
   }[];
   emailAuthCode?: string | null;
   emailAuthCodeExpiry?: number | null;
+  role: UserRole;
 }
 
 // This is a mock database. In a real application, you would use a proper database.
@@ -24,7 +27,8 @@ export let users: User[] = [
     email: 'john@example.com',
     password: 'b0Bnv6HmKIVDXwUpn3gCRz.VJhwjqHiHQJrNf1VnQlFmqnoADn0.4G', // password123
     isVerified: true,
-    isTwoFactorEnabled: false
+    isTwoFactorEnabled: false,
+    role: 'user'
   },
   {
     id: '2',
@@ -32,6 +36,7 @@ export let users: User[] = [
     email: 'jane@example.com',
     password: 'b0.XxjWGYbAMeqf7ckiP2k4vbi2WfA2EOi', // password456
     isVerified: true,
-    isTwoFactorEnabled: false
+    isTwoFactorEnabled: false,
+    role: 'admin'
   }
 ];
