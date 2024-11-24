@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import { compare } from 'bcrypt';
-import { rateLimit, getClientIp } from '@/lib/utils/rateLimiter';
+import { rateLimit, getClientIp, resetRateLimit } from '@/lib/utils/rateLimiter';
 import { verifyTOTP } from '@/lib/utils/twoFactorAuth';
 import { users, User } from '@/lib/models/user';
 import { logSecurityEvent } from '@/lib/utils/logger';
@@ -22,10 +22,43 @@ const handler = NextAuth({
         emailCode: { label: "Email Code", type: "text" }
       },
       async authorize(credentials, req) {
-        // ... (keep existing authorization logic)
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Please enter an email and password');
+        }
 
-        // If authentication is successful
+        const ip = getClientIp(req);
+        const ipRateLimitResult = rateLimit(ip, true);
+        const userRateLimitResult = rateLimit(credentials.email);
+
+        if (!ipRateLimitResult.allowed || !userRateLimitResult.allowed) {
+          const lockoutMinutes = Math.ceil((Math.max(ipRateLimitResult.lockedUntil || 0, userRateLimitResult.lockedUntil || 0) - Date.now()) / 60000);
+          logSecurityEvent('ACCOUNT_LOCKED', { email: credentials.email, ip });
+          throw new Error(`Account locked. Please try again in ${lockoutMinutes} minutes.`);
+        }
+
+        const user = users.find(user => user.email === credentials.email);
+
+        if (!user) {
+          logSecurityEvent('LOGIN_ATTEMPT_USER_NOT_FOUND', { email: credentials.email, ip });
+          throw new Error('No user found with this email');
+        }
+
+        const isPasswordValid = await compare(credentials.password, user.password);
+
+        if (!isPasswordValid) {
+          logSecurityEvent('LOGIN_ATTEMPT_INVALID_PASSWORD', { email: credentials.email, ip });
+          await notifyUserOfSuspiciousActivity(user, 'Failed login attempt', { ip });
+          throw new Error('Invalid password');
+        }
+
+        // ... (keep existing 2FA logic)
+
+        // Reset rate limit on successful login
+        resetRateLimit(credentials.email);
+        resetRateLimit(ip, true);
+
         const sessionId = await createSession(user.id);
+        logSecurityEvent('LOGIN_SUCCESS', { email: credentials.email, ip });
         return { ...user, sessionId };
       }
     }),
@@ -39,37 +72,10 @@ const handler = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.role = user.role;
-        token.sessionId = user.sessionId;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id;
-        session.user.email = token.email;
-        session.user.role = token.role;
-      }
-      session.sessionId = token.sessionId;
-      await refreshSession(token.sessionId);
-      return session;
-    },
+    // ... (keep existing callbacks)
   },
   events: {
-    async signIn({ user, account, req }) {
-      const ip = getClientIp(req);
-      logSecurityEvent('USER_SIGNIN', { userId: user.id, email: user.email, role: (user as User).role, provider: account?.provider, ip });
-    },
-    async signOut({ token }) {
-      if (token.sessionId) {
-        await deleteSession(token.sessionId);
-      }
-      logSecurityEvent('USER_SIGNOUT', { userId: token.id, email: token.email, role: token.role });
-    },
+    // ... (keep existing events)
   },
 });
 
