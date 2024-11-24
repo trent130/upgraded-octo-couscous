@@ -12,6 +12,8 @@ export interface User {
     question: string;
     answer: string;
   }[];
+  emailAuthCode?: string | null;
+  emailAuthCodeExpiry?: number | null;
 }
 
 // This is a mock database. In a real application, you would use a proper database.
