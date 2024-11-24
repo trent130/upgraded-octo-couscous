@@ -47,6 +47,10 @@ export default function SignIn() {
     }
   };
 
+  const handleGoogleSignIn = () => {
+    signIn('google', { callbackUrl: '/' });
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-10 shadow-md">
@@ -119,6 +123,28 @@ export default function SignIn() {
             </button>
           </div>
         </form>
+
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <button
+              onClick={handleGoogleSignIn}
+              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <img src="https://www.google.com/favicon.ico" alt="Google logo" className="h-5 w-5 mr-2" />
+              Sign in with Google
+            </button>
+          </div>
+        </div>
+
         <div className="text-sm text-center mt-4">
           <Link href="/auth/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
             Don't have an account? Sign up
