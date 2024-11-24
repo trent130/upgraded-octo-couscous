@@ -7,6 +7,7 @@ import { rateLimit, getClientIp } from '@/lib/utils/rateLimiter';
 import { verifyTOTP } from '@/lib/utils/twoFactorAuth';
 import { users } from '@/lib/models/user';
 import { logSecurityEvent } from '@/lib/utils/logger';
+import { generateAndSendEmailCode } from '@/lib/utils/emailAuth';
 
 const handler = NextAuth({
   providers: [
@@ -15,7 +16,8 @@ const handler = NextAuth({
       credentials: {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
-        totpCode: { label: "2FA Code", type: "text" }
+        totpCode: { label: "2FA Code", type: "text" },
+        emailCode: { label: "Email Code", type: "text" }
       },
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
@@ -26,16 +28,10 @@ const handler = NextAuth({
         const ipRateLimitResult = rateLimit(ip, true);
         const userRateLimitResult = rateLimit(credentials.email);
 
-        if (!ipRateLimitResult.allowed) {
-          const lockoutMinutes = Math.ceil((ipRateLimitResult.lockedUntil - Date.now()) / 60000);
-          logSecurityEvent('IP_RATE_LIMIT_EXCEEDED', { ip, email: credentials.email });
-          throw new Error(`Too many requests from this IP. Please try again in ${lockoutMinutes} minutes.`);
-        }
-
-        if (!userRateLimitResult.allowed) {
-          const lockoutMinutes = Math.ceil((userRateLimitResult.lockedUntil - Date.now()) / 60000);
-          logSecurityEvent('USER_RATE_LIMIT_EXCEEDED', { email: credentials.email });
-          throw new Error(`Too many login attempts. Please try again in ${lockoutMinutes} minutes.`);
+        if (!ipRateLimitResult.allowed || !userRateLimitResult.allowed) {
+          const lockoutMinutes = Math.ceil((Math.max(ipRateLimitResult.lockedUntil || 0, userRateLimitResult.lockedUntil || 0) - Date.now()) / 60000);
+          logSecurityEvent('RATE_LIMIT_EXCEEDED', { ip, email: credentials.email });
+          throw new Error(`Too many requests. Please try again in ${lockoutMinutes} minutes.`);
         }
 
         const user = users.find(user => user.email === credentials.email);
@@ -53,16 +49,36 @@ const handler = NextAuth({
         }
 
         if (user.isTwoFactorEnabled) {
-          if (!credentials.totpCode) {
-            logSecurityEvent('LOGIN_ATTEMPT_2FA_REQUIRED', { email: credentials.email, ip });
-            throw new Error('2FA code required');
-          }
+          if (user.twoFactorSecret) {
+            if (!credentials.totpCode) {
+              logSecurityEvent('LOGIN_ATTEMPT_2FA_REQUIRED', { email: credentials.email, ip });
+              throw new Error('2FA code required');
+            }
 
-          const isTotpValid = verifyTOTP(credentials.totpCode, user.twoFactorSecret);
+            const isTotpValid = verifyTOTP(credentials.totpCode, user.twoFactorSecret);
 
-          if (!isTotpValid) {
-            logSecurityEvent('LOGIN_ATTEMPT_INVALID_2FA', { email: credentials.email, ip });
-            throw new Error('Invalid 2FA code');
+            if (!isTotpValid) {
+              logSecurityEvent('LOGIN_ATTEMPT_INVALID_2FA', { email: credentials.email, ip });
+              throw new Error('Invalid 2FA code');
+            }
+          } else {
+            if (!credentials.emailCode) {
+              // Generate and send email code
+              const code = await generateAndSendEmailCode(user.email);
+              user.emailAuthCode = code;
+              user.emailAuthCodeExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+              logSecurityEvent('LOGIN_ATTEMPT_EMAIL_2FA_REQUIRED', { email: credentials.email, ip });
+              throw new Error('Email verification code required');
+            }
+
+            if (credentials.emailCode !== user.emailAuthCode || Date.now() > (user.emailAuthCodeExpiry || 0)) {
+              logSecurityEvent('LOGIN_ATTEMPT_INVALID_EMAIL_2FA', { email: credentials.email, ip });
+              throw new Error('Invalid or expired email verification code');
+            }
+
+            // Clear the email code after successful verification
+            user.emailAuthCode = null;
+            user.emailAuthCodeExpiry = null;
           }
         }
 
