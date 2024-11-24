@@ -135,7 +135,7 @@ export default function SignUp() {
           </div>
 
           {password && (
-            <div className={}>
+            <div className={'text-sm ' + (passwordStrength.isStrong ? 'text-green-600' : 'text-red-600')}>
               {passwordStrength.message}
             </div>
           )}
