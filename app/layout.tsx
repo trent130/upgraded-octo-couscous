@@ -4,6 +4,7 @@ import { AppProvider } from './AppContext';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Providers } from './providers';
+import { SessionProvider } from 'next-auth/react';
 
 // Create a custom theme with student-friendly colors
 const theme = createTheme({
@@ -32,18 +33,20 @@ const theme = createTheme({
   },
 });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children, session }: { children: React.ReactNode, session: any }) {
   return (
     <html lang="en">
       <body>
-        <Providers>
-          <AppProvider>
-            <ThemeProvider theme={theme}>
-              <CssBaseline />
-              {children}
-            </ThemeProvider>
-          </AppProvider>
-        </Providers>
+        <SessionProvider session={session}>
+          <Providers>
+            <AppProvider>
+              <ThemeProvider theme={theme}>
+                <CssBaseline />
+                {children}
+              </ThemeProvider>
+            </AppProvider>
+          </Providers>
+        </SessionProvider>
       </body>
     </html>
   );

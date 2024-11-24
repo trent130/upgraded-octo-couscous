@@ -1,12 +1,9 @@
 
-'use client';
-
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import Layout from '../components/Layout';
 import { Grid, Card, CardContent, CardMedia, Typography, Button, CardActions, Rating, Box } from '@mui/material';
 import { ShoppingCart, Favorite, School } from '@mui/icons-material';
-import { useAppContext } from './AppContext';
+import Link from 'next/link';
 
 // Sample product data (in a real app, this would come from a database)
 const products = [
@@ -19,28 +16,6 @@ const products = [
 ];
 
 export default function Home() {
-  const router = useRouter();
-  const { addToCart, addToWishlist } = useAppContext();
-
-  // Handler for product card click
-  const handleProductClick = (productId: number) => {
-    router.push(`/products/${productId}`);
-  };
-
-  // Handler for adding product to cart
-  const handleAddToCart = (e: React.MouseEvent, product: any) => {
-    e.stopPropagation();
-    addToCart(product);
-    // TODO: Add a toast notification for better user feedback
-  };
-
-  // Handler for adding product to wishlist
-  const handleAddToWishlist = (e: React.MouseEvent, product: any) => {
-    e.stopPropagation();
-    addToWishlist(product);
-    // TODO: Add a toast notification for better user feedback
-  };
-
   return (
     <Layout>
       <Box sx={{ mb: 4 }}>
@@ -54,7 +29,7 @@ export default function Home() {
       <Grid container spacing={4}>
         {products.map((product) => (
           <Grid item key={product.id} xs={12} sm={6} md={4}>
-            <Card sx={{ cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column' }} onClick={() => handleProductClick(product.id)}>
+            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <CardMedia
                 component="img"
                 height="200"
@@ -74,10 +49,10 @@ export default function Home() {
                 </Typography>
               </CardContent>
               <CardActions>
-                <Button size="small" color="primary" startIcon={<ShoppingCart />} onClick={(e) => handleAddToCart(e, product)}>
-                  Add to Cart
+                <Button size="small" color="primary" startIcon={<ShoppingCart />} component={Link} href={`/products/${product.id}`}>
+                  View Details
                 </Button>
-                <Button size="small" color="secondary" startIcon={<Favorite />} onClick={(e) => handleAddToWishlist(e, product)}>
+                <Button size="small" color="secondary" startIcon={<Favorite />}>
                   Wishlist
                 </Button>
               </CardActions>
